@@ -8,18 +8,17 @@ Internet access is preferred for downloading the data, but it will also be avail
 
 Please install the following packages from CRAN using `install.packages("package_name")`:
 
-`install.package(rgdal)`  
-`install.package(ggplot2)`  
-`install.package(sf)`  
-`install.package(data.table)`  
-`install.package(dplyr)`  
-`install.package(RColorBrewer)`  
-`install.package(stringr)`  
-`install.package(ggthemes)`  
-`install.package(magrittr)`  
-`install.package(classInt)`  
-`install.package(grDevices)`  
-`install.package(tmap)`    
+`install.package("rgdal")`  
+`install.package("ggplot2")`  
+`install.package("sf")`  
+`install.package("data.table")`  
+`install.package("dplyr")`  
+`install.package("RColorBrewer")`  
+`install.package("stringr")`  
+`install.package("ggthemes")`  
+`install.package("magrittr")`  
+`install.package("classInt")`  
+`install.package("tmap")`    
 
 
 
