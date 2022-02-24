@@ -1,24 +1,19 @@
 ---
-title: An R Markdown document converted from "C:/Users/argun/Documents/GitHub/r-ladies-mapping-tutorial/R
-  Ladies Geospatial Tutorial_md.ipynb"
+title: R Ladies Geospatial Tutorial_md.ipynb"
 output: html_document
 ---
 
 ```{r}
-suppressMessages(library(rgdal)) ###used for projections and importing data
-suppressMessages(library(ggplot2)) ##creating the map
-suppressMessages(library(sf)) ## data is stored as sf dataframes
-suppressMessages(library(data.table)) 
-suppressMessages(library(dplyr)) ##data transformations
-suppressMessages(library(RColorBrewer)) #color palettes
-suppressMessages(library(stringr)) ##string manipulation when filtering dataframes
-suppressMessages(library(extrafont)) ##fonts for map
-suppressMessages(loadfonts(device = "win")) ### fonts for map
-suppressMessages(library(ggthemes)) ##map design
-library(ggsn) ##scalebar
+library(rgdal) ###used for projections and importing data
+library(ggplot2) ##creating the map
+library(sf) ## data is stored as sf dataframes
+library(data.table)
+library(dplyr) ##data transformations
+library(RColorBrewer) #color palettes
+library(stringr) ##string manipulation when filtering dataframes
+library(ggthemes) ##map design
 library(magrittr) ##pipes
 library(classInt) ##intervals for legend
-library(scales) ## commas in legend
 library(grDevices) ### added for export to PDF
 library(tmap) ###interactive mapping
 ```
@@ -44,45 +39,56 @@ There are two ways you can download data:
 
 - create a final folder where the processed and renamed files will go
 
-### Boroughs
+#### First, Let's Create the Directions We'll Be Downloading the Data in To, Cleaning the Data In,
+### and then the Final Folder
 
 ```{r}
-## set wd
-####ADD CODE HERE FOR FILEPATH
-###PASTE FOLDER NAMES
+#### destination for all unzipped folders
+zip_dl = "C:/Users/argun/Documents/Shapefiles/NYC/Testing"
 
-###the open data shapefiles don't have clear names, so we need to do some pre-processing
 
-##create a temporary folder for the download (only do this once, not for every file)
-temp_folder= "C:/Users/argun/Documents/Shapefiles/NYC/Testing/temp"
+##create a temporary folder to unzip (only do this once, not for every file)
+temp_folder= paste0(main_filepath, "/temp")
 dir.create(temp_folder)
 
+###final folder for all shapefiles
+###create new folder (only do this once, not for every file)
+new_dir <- "C:/Users/argun/Documents/Shapefiles/NYC/Testing/shps"
+dir.create(new_dir)
+
+
+
+
+```
+
+### Boroughs - Download
+
+```{r}
+
+
+###the open data shapefiles don't have clear names, so we need to do some pre-processing
 ###download the data (these are the borough boundaries)
 download.file("https://data.cityofnewyork.us/api/geospatial/tqmj-j8zm?method=export&format=Shapefile", 
-              destfile = "C:/Users/argun/Documents/Shapefiles/NYC/Testing/boroughs.zip",
+              destfile = paste0(zip_dl, "/boroughs.zip"),
               mode = "wb")
 
 ##unzip the folder
 unzip("C:/Users/argun/Documents/Shapefiles/NYC/Testing/boroughs.zip",
       exdir=temp_folder)
 
-
-```
-```{r}
 ###we know all the downloads have the file pattern of "geo" with several characters after
-old_files <- list.files("C:/Users/argun/Documents/Shapefiles/NYC/Testing/temp", full.names = TRUE)
+old_files <- list.files(temp_folder, full.names = TRUE)
 old_files
 
 ```
 
+### Boroughs - Cleaning the Files
 
 ```{r}
 # rename the download
 new_names = gsub("^.*?\\.","boroughs.",old_files)
 
-###create new folder (only do this once, not for every file)
-new_dir <- "C:/Users/argun/Documents/Shapefiles/NYC/Testing/shps"
-dir.create(new_dir)
+
 
 ##move unzipped and clean files to a new folder
 file.copy(from=old_files, to=paste0(new_dir, "/", new_names))
@@ -93,71 +99,38 @@ file.remove(old_files)
 list.files(new_dir)
 ```
 
-### Bodies of Water
-
-```{r}
-###bodies of water
-
-download.file("https://data.cityofnewyork.us/api/geospatial/5v6p-rtfu?method=export&format=Shapefile", 
-              destfile = "C:/Users/argun/Documents/Shapefiles/NYC/Testing/bodies_of_water.zip",
-              mode = "wb")
-
-unzip("C:/Users/argun/Documents/Shapefiles/NYC/Testing/bodies_of_water.zip",
-      exdir=temp_folder)
-old_files <- list.files(temp_folder, pattern = "geo*", full.names = TRUE)
-
-new_names = gsub("^.*?\\.","bodies_of_water.",old_files)
-file.copy(from=old_files, to=paste0(new_dir, "/", new_names))
-file.remove(old_files)
-```
-
-### Parks Properties
-
-```{r}
-###parks properties, NOT NTAS
-download.file("https://data.cityofnewyork.us/api/geospatial/g84h-jbjm?method=export&format=Shapefile", 
-              destfile = "C:/Users/argun/Documents/Shapefiles/NYC/Testing/parks_properties.zip",
-              mode = "wb")
-
-unzip("C:/Users/argun/Documents/Shapefiles/NYC/Testing/parks_properties.zip",
-      exdir=temp_folder)
-old_files <- list.files(temp_folder, pattern = "geo*", full.names = TRUE)
-new_names = gsub("^.*?\\.","parks_properties.",old_files)
-file.copy(from=old_files, to=paste0(new_dir, "/", new_names))
-file.remove(old_files)
-```
 
 ### NYC Neighborhoods (NTAs)
+#### note: we are going to use the parks subset of this dataset eventually
 
 ```{r}
 ####NTAS, eventually derive parks from this
 download.file("https://data.cityofnewyork.us/api/geospatial/d3qk-pfyz?method=export&format=Shapefile", 
-              destfile = "C:/Users/argun/Documents/Shapefiles/NYC/Testing/ntas.zip",
+              destfile = paste0(zip_dl, "/ntas.zip"),
               mode = "wb")
 
-unzip("C:/Users/argun/Documents/Shapefiles/NYC/Testing/ntas.zip",
+unzip(paste0(zip_dl, "/ntas.zip"),
       exdir=temp_folder)
+
 old_files <- list.files(temp_folder, pattern = "geo*", full.names = TRUE)
+
 new_names = gsub("^.*?\\.","ntas.",old_files)
+
 file.copy(from=old_files, to=paste0(new_dir, "/", new_names))
 file.remove(old_files)
+list.files(new_dir)
 ```
 
 ### Read in All Those Shapefiles
 
-
 ```{r}
 ###read in and project shapefiles to 2263
 
-shps <- "C:/Users/argun/Documents/Shapefiles/NYC/Testing/shps"
-boroughs <- st_transform(st_read(shps, "boroughs" ), 2263)
-ntas <- st_transform(st_read(shps, "ntas"), 2263)
+boroughs <- st_transform(st_read(new_dir, "boroughs" ), 2263)
+ntas <- st_transform(st_read(new_dir, "ntas"), 2263)
 parks = ntas %>% filter(str_detect(ntaname, paste0("park", collapse = "|")))
-parks_properties <- st_transform(st_read(shps, "parks_properties"), 2263)
 gc()
 ```
-
-
 
 ### Working With CSVs
 
@@ -192,6 +165,7 @@ rest_sf <- st_as_sf(rest , coords = c("Longitude", "Latitude"))
 
 ### remove old file
 rm(rest)
+colnames(rest_sf)
 ```
 
 
@@ -263,73 +237,15 @@ sf_proj %>%
 
 ### Remove Duplicates
 
-#### Here we create two files; a non-spatial data table and a spatial sf dataframe; this is to show two options
-#### for joining the data later on
-
 ```{r}
-rests_dt <- as.data.table(unique(sf_proj, by = "objectid")) ##data table version for dplyr aggregation
 rests_sf <- unique(sf_proj, by = "objectid") ## sf version for spatial join
-
 rm(sf_proj)
+gc()
 
 ```
 
-### Working With Files from a Geodatabase
-
-### We're Going to Work with LION, which is a representation of NYC's Street Network and Other Boundaries
-
-### Reading in Files from a Geodatabase
-
-A geodatabase contains multiple files, so you need to know which file you're reading in. In this case, we only want NYC's road network
-
-```{r}
-
-##read lion from gdb
-download.file("https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyclion_21d.zip", 
-              destfile = "C:/Users/argun/Documents/Shapefiles/NYC/Testing/nyclion_21d.zip",
-              mode = "wb")
-
-unzip("C:/Users/argun/Documents/Shapefiles/NYC/Testing/nyclion_21d.zip",
-      exdir=new_dir)
 
 
-gdb <-  "C:/Users/argun/Documents/Shapefiles/NYC/Testing/shps/lion/lion.gdb" ## make path an object
-
-### let's check out what's in the file geodatabase
-ogrListLayers(gdb) ### create an object that is a list of layers
-#fc <- sf::st_read("C:/Users/Ayanthi/Documents/Shapefiles/NYC/lion/lion.gdb", layer = "lion") ## sometimes this works sometimes it doesn't??
-```
-
-### Based on the metadata, we know LION is the road network
-
-```{r}
-lion <- st_read(dsn=gdb,layer="lion") ## read in data
-
-lion_condensed <- lion %>%
-  ### remove railroads, water edge, census block boundary, paper street
-  ### district boundary, alley, and ferry route
-  filter(!FeatureTyp %in% c("1", "2", "3", "5", "7", "8", "A", "F" )) %>%
-  filter(!RB_Layer %in% c("R", "S", "F")) ## remove roadbed, suppressed, and fake segments
-lion_condensed <- st_transform(lion_condensed, 2263)
-```
-### Checking LION Geometry before st_cast command above
-```{r}
-st_geometry_type(lion, by_geometry = FALSE)
-```
-### LION Geometry after st_cast
-```{r}
-st_geometry_type(lion_cast, by_geometry = FALSE)
-```
-```{r}
-rm(lion)
-rm(lion_cast)
-```
-
-###Let's read in the rest of the data
-
-```{r}
-
-```
 
 ### Create a simple map using ggplot2 syntax
 
@@ -340,32 +256,20 @@ How do you think this design can be made better?
 
 ```{r}
 ggplot()+
-  geom_sf(data=ntas, aes(fill="Neighborhood Boundaries"), color="black", lwd=.002)+
-  #geom_sf(data=parks, fill="#a1c690", color="darkgrey")+
-  geom_sf(data=parks_properties, aes(fill="Parks"), lwd=.002)+
-  #geom_sf(data = lion_condensed, color="#f2f2f2", aes(color="Street"), size=.001)+
-  geom_sf(data=rests_sf, aes(colour="Open Restaurant Permits"), color="red", size=.2, show.legend = "point", shape=16)+
+  geom_sf(data=boroughs, fill=NA, color="black", lwd=.01)+
+  geom_sf(data=ntas, fill=NA, color="black", lwd=.002)+
+  geom_sf(data=parks, fill="#a1c690", color="darkgrey")+
+  geom_sf(data=rests_sf, color="red", size=.2, shape=16)+
   theme(panel.background = element_rect(fill = "white"),
         axis.ticks = element_blank(),
         axis.text = element_blank(),
         panel.grid = element_line(color = "white", size = 0.8),
-        plot.title= element_text(colour="black", size = 24, face = "bold", hjust=0.5,),
-        legend.position = "left",
-        legend.spacing.y = unit(0, 'cm'))+
-  ###legend for polygons
-  scale_fill_manual(values = c("Parks" = "#a1c690", "Neighborhood Boundaries"="white"), name="Legend",
-                    guide = guide_legend(override.aes = list(linetype = c("solid", "solid"), 
-                                                               shape = c(NA, NA)))) +
-  ###legend for points
-  scale_color_manual(values = c("Open Restaurant Permits" = "red"), name = NULL,
-                     guide=guide_legend(override.aes = list(shape = c(16),
-                                                            size=2))) +
-  
+        plot.title= element_text(colour="black", size = 20, face = "bold", hjust=0.5))+
   labs(title = "Open Restaurant Permits \n New York City",
        caption = "Source: NYC Open Data, Retrieved on 2/22/2022")
 ```
 
-The above map tells shows us the distribution of LPIs across NYC. But what does this mean to the average person? After a certain critical mass of points, you can't visually tell where there are more or less points, or how relevant those points are to the analysis you're trying to do
+The above map tells shows us the distribution of restaurants across NYC. But what does this mean to the average person? After a certain critical mass of points, you can't visually tell where there are more or less points, or how relevant those points are to the analysis you're trying to do
 
 ### We can make what's called a choropleth map, which aggregates points to a geometry and shows meaningful patterns
 
@@ -381,14 +285,6 @@ There are two ways we can do this:
 
 ### Note: You CANNOT use dplyr for grouping with spatial objects; even if you group by one column, it automatically also groups by the geometry of each point as well
 
-### DPLYR Method: using the (non-spatial) datatable we created earlier
-
-```{r}
-rest_nta <- rests_dt %>% group_by(NTA) %>% summarise(count_restaurants = n())
-nta_rest = merge(x=ntas,y=rest_nta,by.x="ntaname", by.y="NTA",all.x=TRUE)
-head(nta_rest)
-rm(rest_nta)
-```
 
 ### Spatial Join Method
 
@@ -396,6 +292,7 @@ Add a column to the ntas data with the count of restaurants.
 
 ```{r}
 ntas$count_restaurants <- lengths(st_intersects(ntas, rests_sf))
+head(ntas)
 ```
 
 
@@ -404,17 +301,22 @@ ntas$count_restaurants <- lengths(st_intersects(ntas, rests_sf))
 ```{r}
 ###normalize counts
 nta_remove = c("cemetery", "Airport") ###list of outliers
-nta_rest <- nta_rest %>%
+airports = c("Airport")
+nta_rest <- ntas %>%
 filter(!grepl(paste(nta_remove, collapse="|"), ntaname)) %>% ##remove outliers
-mutate(rest_sqmi= count_restaurants/(shape_area/27878400)) ###get restaurants per square mile
+mutate(rest_sqmi= count_restaurants/(shape_area/27878400))  ###get restaurants per square mile
 
 
-### keep the removed neighborhoods as a separate df
-nta_removed <- ntas %>%
-filter(grepl(paste(nta_remove, collapse="|"), ntaname)) 
+
+### keep the airports as a separate df
+airports <- ntas %>%
+filter(grepl(paste(airports, collapse="|"), ntaname)) 
+  
 ```
 
+
 ### Create a choropleth map from this
+
 
 We don't want every value in restaurants/sq mile to be a separate value, it doesn't tell us much
 
@@ -422,7 +324,7 @@ We don't want every value in restaurants/sq mile to be a separate value, it does
 ggplot(nta_rest) + 
     geom_sf(aes(fill=rest_sqmi))+
     scale_fill_viridis_c(option = "D", na.value = "darkgrey") +
-    geom_sf(data=nta_removed, fill="darkgrey")+
+    geom_sf(data=airports, fill="darkgrey")+
     geom_sf(data=parks, fill="#a1c690", color="darkgrey")+
     theme(panel.background = element_rect(fill = "white"),
         axis.ticks = element_blank(),
@@ -431,165 +333,99 @@ ggplot(nta_rest) +
         plot.title= element_text(colour="black", size = 24, face = "bold", hjust=0.5,))+
   labs(title = "Open Restaurant Permits Per Square Mile \n New York City")
 ```
+```{r}
+nta_rest[which(is.na(nta_rest$rest_sqmi)),]
+nta_rest[nta_rest$rest_sqmi==0,]
+```
 
 ### In Order to Better Represent this Data, Let's Add Quantile Breaks
 
 ```{r}
+### remove NTAs with no restaurants
+nta_no_rest <- nta_rest %>%
+filter(rest_sqmi==0)
+
+nta_rest <- nta_rest %>%
+  filter(rest_sqmi > 0)
+
+
 # get quantile breaks.
 breaks_qt <- classIntervals(c(min(nta_rest$rest_sqmi), nta_rest$rest_sqmi), n = 5, style = "quantile")
 
 ### use the "cut" function to add a breaks column in your sf object
-nta_rest <- mutate(nta_rest, brks = cut(rest_sqmi, breaks_qt$brks, include.lowest = TRUE, ,dig.lab=4)) 
+nta_rest <- mutate(nta_rest, brks = cut(rest_sqmi, breaks_qt$brks, include.lowest = TRUE,dig.lab=4)) 
 
+###results include the upper bound but NOT the lower bound!
 breaks_qt
 ```
-
 ```{r}
-nta_rest[which(is.na(nta_rest$brks)),]
+##map colors
+brewer.pal(n=5,"YlOrRd")
+```
+
+### To Properly Label Each Element, we need to manually assign each interval to a color
+```{r}
+
+ggplot() + 
+    geom_sf(data=nta_rest, aes(fill=brks)) +
+    geom_sf(data=parks,  aes(fill="Parks/Cemeteries"))+
+    geom_sf(data=nta_no_rest, aes(fill="No Restaurants"))+
+    geom_sf(data=airports, aes(fill="Airports"))+
+    scale_fill_manual("Legend",
+    values=c('[0.4253,4.546]'='#FFFFB2',
+             '(4.546,13.56]'='#FECC5C',
+             '(13.56,31.94]'='#FD8D3C', 
+             '(31.94,93.01]'='#F03B20',
+             '(93.01,1359]'='#BD0026',
+             'Parks/Cemeteries'='#a1c690',
+             'No Restaurants'="darkgrey",
+             'Airports'="black"),
+                    breaks=c('[0.4253,4.546]','(4.546,13.56]','(13.56,31.94]',
+                             '(31.94,93.01]','(93.01,1359]', 'Parks/Cemeteries', 'No Restaurants', 'Airports'),
+                    labels=c('[0.4253,4.546]','(4.546,13.56]','(13.56,31.94]',
+                             '(31.94,93.01]','(93.01,1359]', 'Parks/Cemeteries', 'No Restaurants','Airports'),
+     guide = guide_legend(override.aes = list(linetype = c("solid", "solid", "solid","solid","solid", "solid", "solid", "solid"), shape = c(NA, NA,NA,NA,NA, NA, NA, NA))))+
+  labs(title = "Open Restaurant Permits \nPer Square Mile \nby Neigborhood Tabulation Area",
+       caption="source: NYC Open Data, Retrieved on 2/24/2022")
+  
+```
+```{r}
+#ggsave("test_map_rest.pdf",
+#       plot=g,
+#       width=8.5, height=11, units="in",
+#       dpi=1200)
+#unlink("test_map_rest.pdf")
 ```
 
 ```{r}
-
-ggplot(nta_rest) + 
-    geom_sf(aes(fill=brks)) +
-    scale_fill_brewer(palette = "OrRd", na.value="darkgrey") +
-    geom_sf(data=parks, fill="#a1c690", color="darkgrey")+
-    geom_sf(data=nta_removed, fill="darkgrey")
+#dev.off()
 ```
 
+###Same map in TMAP: easier syntax
+
 ```{r}
-library(tmap)
+tmap_mode("plot")+
 tm_shape(nta_rest) +
   tm_polygons("rest_sqmi", 
               style="quantile", 
               legend.format = list(text.separator="-", fun = function(x) formatC(x, digits = 2, big.mark = ",", format = "f")) ,
               title="New York City\nOpen Restaurant Permits \nper Square Mile")+
-tm_shape(nta_removed)+
+tm_shape(nta_no_rest)+
   tm_polygons(col = "darkgrey") +
+tm_shape(airports)+
+  tm_polygons(col="black")+
 tm_shape(parks)+
   tm_polygons(col="#a1c690", border.col = "darkgrey")
+
 ```
 
-### But what if we want a closeup?
 
-```{r}
-####data for zoomed in map
 
-ntas_cropped <- st_crop(ntas, xmin = 994462.6, xmax = 1005982.5,
-                        ymin = 181378.1, ymax = 188278.7)
-rest_cropped <- st_intersection(sf_proj, ntas_cropped)
-streets_cropped <- st_intersection(lion_condensed, ntas_cropped)
-parks_properties_cropped <- st_intersection(parks_properties, ntas_cropped) %>%
-  subset(!landuse %in% c("Mall", "Parkway"))
-```
-
-```{r}
-ggplot()+
-  geom_sf(data=ntas_cropped, fill="white")+
-  #geom_sf(data=parks_cropped, fill="#a1c690", color="lightgrey")+
-  geom_sf(data = streets_cropped, color="#f2f2f2", size=.005)+
-  geom_sf(data=rest_cropped, color="red", size=.2)+
-  theme(panel.background = element_rect(fill = "white"),
-        axis.ticks = element_blank(),
-        axis.text = element_blank(),
-        panel.grid = element_line(color = "white", size = 0.8))
-```
-
-### Watch What Happens When you Try and Add Street Labels
-
-```{r}
-ggplot()+
-  geom_sf(data=ntas_cropped, fill="white")+
-  #geom_sf(data=parks_cropped, fill="#a1c690", color="lightgrey")+
-  geom_sf(data = streets_cropped, color="#f2f2f2", size=.005)+
-  geom_sf_text(data=streets_cropped, 
-               aes(label=Street, family="serif"), colour = "black", size=2)+
-  geom_sf(data=rest_cropped, color="red", size=.2)+
-  theme(panel.background = element_rect(fill = "white"),
-        axis.ticks = element_blank(),
-        axis.text = element_blank(),
-        panel.grid = element_line(color = "white", size = 0.8))
-```
-
-### Processing for Labeling Roads
-
-Each section of the road between two intersections is a separate line in the data. Therefore, there are several lines
-that represent each street
-
-```{r}
-###union roads for the purpose of labeling
-
-roads.out <- streets_cropped %>% 
-  group_by(Street) %>% 
-  summarize(geometry = st_union(SHAPE))
-```
-
-```{r}
-#g <- 
-ggplot() + 
-  geom_sf(data=streets_cropped, aes(color="streets"), show.legend = "line", size=.005)+
-  #geom_sf(data = ntas_cropped, fill=NA, color="black")+
-  geom_sf(data=parks_properties_cropped, fill="#a1c690", color=NA)+
-  geom_sf_text(data=roads.out[roads.out$Street=="ATLANTIC AVENUE",], 
-               aes(label=Street, family="serif"), colour = "black", size=2, angle=-5
-               ,nudge_x=1600, nudge_y=-35)+
-  geom_sf_text(data=roads.out[roads.out$Street=="FRANKLIN AVENUE",], 
-               aes(label=Street, family="serif"), colour = "black", size=2, 
-               angle=80 ,
-               nudge_x = -70, nudge_y = 350)+
-  geom_sf_text(data=roads.out[roads.out$Street=="EASTERN PARKWAY",], 
-               aes(label=Street, family="serif"), colour = "black", size=2, angle=-5,
-              nudge_x = 5000, nudge_y=-750)+
-  geom_sf(data=rest_cropped, aes(color="Restaurants"), show.legend = "point", size=1.2)+
-  theme(axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks = element_blank(),
-        rect = element_blank(),
-        panel.background = element_blank(),
-        plot.background = element_rect(fill = "white"),#, color = "grey20"),size = 2),
-        plot.title= element_text(colour="black", size = 24, face = "bold", hjust=0.5,),
-        legend.position = "right") +
-  theme(legend.title = element_blank(),
-        legend.spacing.y = unit(0, "mm"), 
-        panel.border = element_rect(colour = "black", fill=NA),
-        aspect.ratio = 1, axis.text = element_text(colour = 1, size = 12),
-        legend.background = element_blank(),
-        legend.box.background = element_rect(colour = "black"))+
-  labs(title = "Open Restaurant Permits \n Crown Heights North")+
-  xlab("") + 
-  ylab("")+
-  scale_colour_manual(values = c("Restaurants" = "red", "streets"="darkgrey"),
-                      guide = guide_legend(override.aes = list(linetype =  c("blank", "solid"),
-                                                              shape=c(16, NA))))+
-  scalebar(ntas_cropped, dist = .5, dist_unit = "mi", location="bottomleft",
-             transform = FALSE, model = "WGS84")
-  
-```
-
-```{r}
-ggsave("test_map_res.pdf",
-       plot=g,
-       width=8.5, height=11, units="in",
-       dpi=1200)
-#unlink("test_map_rest.pdf")
-```
-
-```{r}
-dev.off()
-```
 ```{r}
 tmap_mode("view")
 #tm_shape(ntas)+
 #  tm_polygons(col="white", alpha = .5)+
-tmap_leaflet(tm_shape(rest_sf)+
+tmap_leaflet(tm_shape(nta_rest)+
   tm_symbols(shape=21, col="red", size = .0005,
   popup.vars=c("Restaurant Name"="Restaurant Name", "Seating Interest (Sidewalk/Roadway/Both)"="Seating Interest (Sidewalk/Roadway/Both)")))
 ```
-
-### Cleanup
-
-```{r}
-removals <- list.files("C:/Users/argun/Documents/Shapefiles/NYC/Testing", pattern = "*.zip*", full.names = TRUE)
-file.remove(removals)
-```
-

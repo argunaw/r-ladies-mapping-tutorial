@@ -1,0 +1,175 @@
+---
+title: "R Ladies Geospatial Tutorial Extras"
+output: html_document
+---
+
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(scales) ## commas in legend
+library(extrafont) ##fonts for map
+loadfonts(device = "win") ### fonts for map
+library(ggsn) ##scalebar
+```
+
+
+### Working With Files from a Geodatabase
+
+### We're Going to Work with LION, which is a representation of NYC's Street Network and Other Boundaries
+
+### Reading in Files from a Geodatabase
+
+A geodatabase contains multiple files, so you need to know which file you're reading in. In this case, we only want NYC's road network
+
+```{r}
+
+##read lion from gdb
+download.file("https://www1.nyc.gov/assets/planning/download/zip/data-maps/open-data/nyclion_21d.zip", 
+              destfile = "C:/Users/argun/Documents/Shapefiles/NYC/Testing/nyclion_21d.zip",
+              mode = "wb")
+
+unzip("C:/Users/argun/Documents/Shapefiles/NYC/Testing/nyclion_21d.zip",
+      exdir=new_dir)
+
+
+gdb <-  "C:/Users/argun/Documents/Shapefiles/NYC/Testing/shps/lion/lion.gdb" ## make path an object
+
+### let's check out what's in the file geodatabase
+ogrListLayers(gdb) ### create an object that is a list of layers
+#fc <- sf::st_read("C:/Users/Ayanthi/Documents/Shapefiles/NYC/lion/lion.gdb", layer = "lion") ## sometimes this works sometimes it doesn't??
+```
+
+### Based on the metadata, we know LION is the road network
+
+```{r}
+lion <- st_read(dsn=gdb,layer="lion") ## read in data
+
+lion_condensed <- lion %>%
+  ### remove railroads, water edge, census block boundary, paper street
+  ### district boundary, alley, and ferry route
+  filter(!FeatureTyp %in% c("1", "2", "3", "5", "7", "8", "A", "F" )) %>%
+  filter(!RB_Layer %in% c("R", "S", "F")) ## remove roadbed, suppressed, and fake segments
+lion_condensed <- st_transform(lion_condensed, 2263)
+```
+### Checking LION Geometry before st_cast command above
+```{r}
+st_geometry_type(lion, by_geometry = FALSE)
+```
+### LION Geometry after st_cast
+```{r}
+st_geometry_type(lion_cast, by_geometry = FALSE)
+```
+```{r}
+rm(lion)
+rm(lion_cast)
+```
+
+
+
+### But what if we want a closeup?
+
+```{r}
+####data for zoomed in map
+
+ntas_cropped <- st_crop(ntas, xmin = 994462.6, xmax = 1005982.5,
+                        ymin = 181378.1, ymax = 188278.7)
+rest_cropped <- st_intersection(sf_proj, ntas_cropped)
+streets_cropped <- st_intersection(lion_condensed, ntas_cropped)
+parks_properties_cropped <- st_intersection(parks_properties, ntas_cropped) %>%
+  subset(!landuse %in% c("Mall", "Parkway"))
+```
+
+```{r}
+ggplot()+
+  geom_sf(data=ntas_cropped, fill="white")+
+  #geom_sf(data=parks_cropped, fill="#a1c690", color="lightgrey")+
+  geom_sf(data = streets_cropped, color="#f2f2f2", size=.005)+
+  geom_sf(data=rest_cropped, color="red", size=.2)+
+  theme(panel.background = element_rect(fill = "white"),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_line(color = "white", size = 0.8))
+```
+
+
+
+
+### Watch What Happens When you Try and Add Street Labels
+
+```{r}
+ggplot()+
+  geom_sf(data=ntas_cropped, fill="white")+
+  #geom_sf(data=parks_cropped, fill="#a1c690", color="lightgrey")+
+  geom_sf(data = streets_cropped, color="#f2f2f2", size=.005)+
+  geom_sf_text(data=streets_cropped, 
+               aes(label=Street, family="serif"), colour = "black", size=2)+
+  geom_sf(data=rest_cropped, color="red", size=.2)+
+  theme(panel.background = element_rect(fill = "white"),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_line(color = "white", size = 0.8))
+```
+
+### Processing for Labeling Roads
+
+Each section of the road between two intersections is a separate line in the data. Therefore, there are several lines
+that represent each street
+
+```{r}
+###union roads for the purpose of labeling
+
+roads.out <- streets_cropped %>% 
+  group_by(Street) %>% 
+  summarize(geometry = st_union(SHAPE))
+```
+
+```{r}
+#g <- 
+ggplot() + 
+  geom_sf(data=streets_cropped, aes(color="streets"), show.legend = "line", size=.005)+
+  #geom_sf(data = ntas_cropped, fill=NA, color="black")+
+  geom_sf(data=parks_properties_cropped, fill="#a1c690", color=NA)+
+  geom_sf_text(data=roads.out[roads.out$Street=="ATLANTIC AVENUE",], 
+               aes(label=Street, family="serif"), colour = "black", size=2, angle=-5
+               ,nudge_x=1600, nudge_y=-35)+
+  geom_sf_text(data=roads.out[roads.out$Street=="FRANKLIN AVENUE",], 
+               aes(label=Street, family="serif"), colour = "black", size=2, 
+               angle=80 ,
+               nudge_x = -70, nudge_y = 350)+
+  geom_sf_text(data=roads.out[roads.out$Street=="EASTERN PARKWAY",], 
+               aes(label=Street, family="serif"), colour = "black", size=2, angle=-5,
+              nudge_x = 5000, nudge_y=-750)+
+  geom_sf(data=rest_cropped, aes(color="Restaurants"), show.legend = "point", size=1.2)+
+  theme(axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        rect = element_blank(),
+        panel.background = element_blank(),
+        plot.background = element_rect(fill = "white"),#, color = "grey20"),size = 2),
+        plot.title= element_text(colour="black", size = 24, face = "bold", hjust=0.5,),
+        legend.position = "right") +
+  theme(legend.title = element_blank(),
+        legend.spacing.y = unit(0, "mm"), 
+        panel.border = element_rect(colour = "black", fill=NA),
+        aspect.ratio = 1, axis.text = element_text(colour = 1, size = 12),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black"))+
+  labs(title = "Open Restaurant Permits \n Crown Heights North")+
+  xlab("") + 
+  ylab("")+
+  scale_colour_manual(values = c("Restaurants" = "red", "streets"="darkgrey"),
+                      guide = guide_legend(override.aes = list(linetype =  c("blank", "solid"),
+                                                              shape=c(16, NA))))+
+  scalebar(ntas_cropped, dist = .5, dist_unit = "mi", location="bottomleft",
+             transform = FALSE, model = "WGS84")
+  
+```
+
+
+
