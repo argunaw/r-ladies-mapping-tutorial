@@ -48,7 +48,7 @@ zip_dl = "C:/Users/argun/Documents/Shapefiles/NYC/Testing"
 
 
 ##create a temporary folder to unzip (only do this once, not for every file)
-temp_folder= paste0(main_filepath, "/temp")
+temp_folder= paste0(zip_dl, "/temp")
 dir.create(temp_folder)
 
 ###final folder for all shapefiles
@@ -302,6 +302,8 @@ head(ntas)
 ###normalize counts
 nta_remove = c("cemetery", "Airport") ###list of outliers
 airports = c("Airport")
+
+
 nta_rest <- ntas %>%
 filter(!grepl(paste(nta_remove, collapse="|"), ntaname)) %>% ##remove outliers
 mutate(rest_sqmi= count_restaurants/(shape_area/27878400))  ###get restaurants per square mile
@@ -333,6 +335,8 @@ ggplot(nta_rest) +
         plot.title= element_text(colour="black", size = 24, face = "bold", hjust=0.5,))+
   labs(title = "Open Restaurant Permits Per Square Mile \n New York City")
 ```
+
+
 ```{r}
 nta_rest[which(is.na(nta_rest$rest_sqmi)),]
 nta_rest[nta_rest$rest_sqmi==0,]
@@ -358,6 +362,7 @@ nta_rest <- mutate(nta_rest, brks = cut(rest_sqmi, breaks_qt$brks, include.lowes
 ###results include the upper bound but NOT the lower bound!
 breaks_qt
 ```
+
 ```{r}
 ##map colors
 brewer.pal(n=5,"YlOrRd")
@@ -389,6 +394,7 @@ ggplot() +
        caption="source: NYC Open Data, Retrieved on 2/24/2022")
   
 ```
+
 ```{r}
 #ggsave("test_map_rest.pdf",
 #       plot=g,
@@ -423,9 +429,9 @@ tm_shape(parks)+
 
 ```{r}
 tmap_mode("view")
-#tm_shape(ntas)+
-#  tm_polygons(col="white", alpha = .5)+
-tmap_leaflet(tm_shape(nta_rest)+
+tm_shape(ntas)+
+  tm_polygons(col="white", alpha = .5)+
+tm_shape(rests_sf)+
   tm_symbols(shape=21, col="red", size = .0005,
-  popup.vars=c("Restaurant Name"="Restaurant Name", "Seating Interest (Sidewalk/Roadway/Both)"="Seating Interest (Sidewalk/Roadway/Both)")))
+  popup.vars=c("Restaurant Name"="Restaurant Name", "Seating Interest (Sidewalk/Roadway/Both)"="Seating Interest (Sidewalk/Roadway/Both)"))
 ```
