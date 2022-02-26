@@ -53,7 +53,7 @@ dir.create(temp_folder)
 
 ###final folder for all shapefiles
 ###create new folder (only do this once, not for every file)
-new_dir <- "C:/Users/argun/Documents/Shapefiles/NYC/Testing/shps"
+new_dir <-  paste0(zip_dl, "/shps")
 dir.create(new_dir)
 
 
@@ -251,7 +251,6 @@ gc()
 
 How do you think this design can be made better?
 
-- remove streets (too many for something so zoomed out)
 - add context via parks (explains the gaps)
 
 ```{r}
@@ -353,19 +352,19 @@ nta_rest <- nta_rest %>%
   filter(rest_sqmi > 0)
 
 
-# get quantile breaks.
-breaks_qt <- classIntervals(c(min(nta_rest$rest_sqmi), nta_rest$rest_sqmi), n = 5, style = "quantile")
-
 ### use the "cut" function to add a breaks column in your sf object
-nta_rest <- mutate(nta_rest, brks = cut(rest_sqmi, breaks_qt$brks, include.lowest = TRUE,dig.lab=4)) 
+nta_rest <- mutate(nta_rest, brks = cut(nta_rest$rest_sqmi, quantile(nta_rest$rest_sqmi, probs = seq(0, 1, .2)), dig.lab = 4)) 
 
 ###results include the upper bound but NOT the lower bound!
-breaks_qt
+###let's look at the breaks
+unique(nta_rest$brks)
 ```
 
 ```{r}
 ##map colors
 brewer.pal(n=5,"YlOrRd")
+colors <- c("#FFFFB2", "#FECC5C", "#FD8D3C", "#F03B20", "#BD0026", "#A1C690", "darkgrey", "black")
+
 ```
 
 ### To Properly Label Each Element, we need to manually assign each interval to a color
@@ -376,28 +375,24 @@ ggplot() +
     geom_sf(data=parks,  aes(fill="Parks/Cemeteries"))+
     geom_sf(data=nta_no_rest, aes(fill="No Restaurants"))+
     geom_sf(data=airports, aes(fill="Airports"))+
+    theme(panel.background = element_rect(fill = "white"),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_line(color = "white", size = 0.8),
+        plot.title= element_text(colour="black", size = 18, face = "bold", hjust=0.5,))+
     scale_fill_manual("Legend",
-    values=c('[0.4253,4.546]'='#FFFFB2',
-             '(4.546,13.56]'='#FECC5C',
-             '(13.56,31.94]'='#FD8D3C', 
-             '(31.94,93.01]'='#F03B20',
-             '(93.01,1359]'='#BD0026',
-             'Parks/Cemeteries'='#a1c690',
-             'No Restaurants'="darkgrey",
-             'Airports'="black"),
-                    breaks=c('[0.4253,4.546]','(4.546,13.56]','(13.56,31.94]',
-                             '(31.94,93.01]','(93.01,1359]', 'Parks/Cemeteries', 'No Restaurants', 'Airports'),
-                    labels=c('[0.4253,4.546]','(4.546,13.56]','(13.56,31.94]',
-                             '(31.94,93.01]','(93.01,1359]', 'Parks/Cemeteries', 'No Restaurants','Airports'),
-     guide = guide_legend(override.aes = list(linetype = c("solid", "solid", "solid","solid","solid", "solid", "solid", "solid"), shape = c(NA, NA,NA,NA,NA, NA, NA, NA))))+
-  labs(title = "Open Restaurant Permits \nPer Square Mile \nby Neigborhood Tabulation Area",
+    values=colors,
+    breaks=c(levels(nta_rest$brks), 'Parks/Cemeteries', 'No Restaurants', 'Airports'))+
+  labs(title = "Open Restaurant Permits \nPer Square Mile \nby Neighborhood Tabulation Area",
        caption="source: NYC Open Data, Retrieved on 2/24/2022")
   
 ```
 
+### If you save the object as a variable, you can eventually save this as a pdf using the code below
+
 ```{r}
 #ggsave("test_map_rest.pdf",
-#       plot=g,
+#       plot=saved_map_variable,
 #       width=8.5, height=11, units="in",
 #       dpi=1200)
 #unlink("test_map_rest.pdf")
@@ -425,12 +420,13 @@ tm_shape(parks)+
 
 ```
 
+###Interactive Map
 
 
 ```{r}
 tmap_mode("view")
 tm_shape(ntas)+
-  tm_polygons(col="white", alpha = .5)+
+  tm_polygons(col="white", alpha = .25)+
 tm_shape(rests_sf)+
   tm_symbols(shape=21, col="red", size = .0005,
   popup.vars=c("Restaurant Name"="Restaurant Name", "Seating Interest (Sidewalk/Roadway/Both)"="Seating Interest (Sidewalk/Roadway/Both)"))
