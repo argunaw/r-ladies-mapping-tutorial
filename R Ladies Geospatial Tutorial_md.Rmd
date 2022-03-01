@@ -44,10 +44,12 @@ There are two ways you can download data:
 
 ```{r}
 #### destination for all unzipped folders
+
 zip_dl = "C:/Users/argun/Documents/Shapefiles/NYC/Testing"
 
 
 ##create a temporary folder to unzip (only do this once, not for every file)
+###note that every folder here is already on my hard drive EXCEPT the folder at the end of string. if the entire string is a series of new folders, you need to add recursive=TRUE
 temp_folder= paste0(zip_dl, "/temp")
 dir.create(temp_folder)
 
