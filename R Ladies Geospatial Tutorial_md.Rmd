@@ -45,7 +45,7 @@ There are two ways you can download data:
 ```{r}
 #### destination for all unzipped folders
 
-zip_dl = "C:/Users/argun/Documents/Shapefiles/NYC/Testing"
+zip_dl = "C:/Users/AyanthiGunawardana/Documents/r-ladies-mapping-tutorial-main/Testing"
 
 
 ##create a temporary folder to unzip (only do this once, not for every file)
@@ -81,6 +81,7 @@ unzip(paste0(zip_dl, "/boroughs.zip"),
 ###we know all the downloads have the file pattern of "geo" with several characters after
 old_files <- list.files(temp_folder, full.names = TRUE)
 old_files
+utils::browseURL(temp_folder)
 
 ```
 
@@ -98,7 +99,10 @@ file.remove(old_files)
 
 
 ###let's check out the new files
-list.files(new_dir)
+new_files <- list.files(new_dir)
+new_files
+utils::browseURL(new_dir)
+
 ```
 
 
@@ -130,7 +134,6 @@ list.files(new_dir)
 
 boroughs <- st_transform(st_read(new_dir, "boroughs" ), 2263)
 ntas <- st_transform(st_read(new_dir, "ntas"), 2263)
-###parks are a subset of NTAs and represent parks, cemeteries, or other large non-residential spaces
 parks = ntas %>% filter(str_detect(ntaname, paste0("park", collapse = "|")))
 gc()
 ```
@@ -146,7 +149,7 @@ gc()
 ###download the csv
 
 download.file("https://data.cityofnewyork.us/api/views/pitm-atqc/rows.csv?accessType=DOWNLOAD&bom=true&format=true", 
-              destfile = "C:/Users/argun/Documents/Shapefiles/NYC/Testing/open_restaurants.csv",
+              destfile = paste0(zip_dl, "/open_restaurants.csv"),
               mode = "wb")
 
 ```
@@ -155,7 +158,7 @@ download.file("https://data.cityofnewyork.us/api/views/pitm-atqc/rows.csv?access
 
 ```{r}
 ### import the csv
-rest <- fread("C:/Users/argun/Documents/Shapefiles/NYC/Testing/open_restaurants.csv", header = TRUE)
+rest <- fread(paste0(zip_dl, "/open_restaurants.csv"), header = TRUE)
 colnames(rest)
 ```
 
@@ -356,7 +359,7 @@ nta_rest <- nta_rest %>%
 
 
 ### use the "cut" function to add a breaks column in your sf object
-nta_rest <- mutate(nta_rest, brks = cut(nta_rest$rest_sqmi, quantile(nta_rest$rest_sqmi, probs = seq(0, 1, .2)), dig.lab = 4)) 
+nta_rest <- mutate(nta_rest, brks = cut(nta_rest$rest_sqmi, quantile(nta_rest$rest_sqmi, probs = seq(0, 1, .2)), include.lowest = TRUE, dig.lab = 4)) 
 
 ###results include the upper bound but NOT the lower bound!
 ###let's look at the breaks
@@ -382,44 +385,60 @@ ggplot() +
         axis.ticks = element_blank(),
         axis.text = element_blank(),
         panel.grid = element_line(color = "white", size = 0.8),
+        legend.position = c(.2,.8),
         plot.title= element_text(colour="black", size = 18, face = "bold", hjust=0.5,))+
     scale_fill_manual("Legend",
     values=colors,
     breaks=c(levels(nta_rest$brks), 'Parks/Cemeteries', 'No Restaurants', 'Airports'))+
-  labs(title = "Open Restaurant Permits \nPer Square Mile \nby Neighborhood Tabulation Area",
-       caption="source: NYC Open Data, Retrieved on 2/24/2022")
+    labs(title = "Open Restaurant Permits \nPer Square Mile \nby Neighborhood Tabulation Area",
+       caption=paste0("source: NYC Open Data, Retrieved on ", Sys.Date()))
   
 ```
 
-### If you save the object as a variable, you can eventually save this as a pdf using the code below
+### Save this as a pdf using the code below
 
 ```{r}
-#ggsave("test_map_rest.pdf",
-#       plot=saved_map_variable,
-#       width=8.5, height=11, units="in",
-#       dpi=1200)
-#unlink("test_map_rest.pdf")
+ggsave("test_map_rest.pdf",
+       plot=last_plot(),
+       width=8.5, height=11, units="in",
+       dpi=1200)
+
 ```
 
 ```{r}
 #dev.off()
 ```
 
-###Same map in TMAP: easier syntax
+###Same map in TMAP: easier syntax for quintiles
 
 ```{r}
 tmap_mode("plot")+
 tm_shape(nta_rest) +
   tm_polygons("rest_sqmi", 
-              style="quantile", 
-              legend.format = list(text.separator="-", fun = function(x) formatC(x, digits = 2, big.mark = ",", format = "f")) ,
-              title="New York City\nOpen Restaurant Permits \nper Square Mile")+
+              style="quantile"
+              ,legend.format = list(text.separator="-", fun = function(x) formatC(x, digits = 2, big.mark = ",", format = "f")), title="" 
+              )+ 
 tm_shape(nta_no_rest)+
   tm_polygons(col = "darkgrey") +
 tm_shape(airports)+
   tm_polygons(col="black")+
 tm_shape(parks)+
-  tm_polygons(col="#a1c690", border.col = "darkgrey")
+  tm_polygons(col="#a1c690", border.col = "darkgrey")+
+##custom legend start
+#tm_add_legend(
+#    type = "fill", 
+#    labels = c(levels(nta_rest$brks), 'Parks/Cemeteries', 'No Restaurants', 'Airports'), 
+#    col = colors
+#) + 
+###custom legend end
+###legend and title placement
+tm_layout(legend.position = c("left", "top"), 
+          title= "New York City\nOpen Restaurant Permits \nPer Square Mile",
+          title.size = 1,
+          title.position = c('left', 'top'))+
+###source
+tm_credits(paste0("Source: NYC Open Data, Retrieved On ", Sys.Date()),
+             position = c("RIGHT", "BOTTOM"))
 
 ```
 
