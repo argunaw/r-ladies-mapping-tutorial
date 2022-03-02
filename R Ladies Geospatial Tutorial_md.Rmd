@@ -75,7 +75,7 @@ download.file("https://data.cityofnewyork.us/api/geospatial/tqmj-j8zm?method=exp
               mode = "wb")
 
 ##unzip the folder
-unzip("C:/Users/argun/Documents/Shapefiles/NYC/Testing/boroughs.zip",
+unzip(paste0(zip_dl, "/boroughs.zip"),
       exdir=temp_folder)
 
 ###we know all the downloads have the file pattern of "geo" with several characters after
@@ -130,6 +130,7 @@ list.files(new_dir)
 
 boroughs <- st_transform(st_read(new_dir, "boroughs" ), 2263)
 ntas <- st_transform(st_read(new_dir, "ntas"), 2263)
+###parks are a subset of NTAs and represent parks, cemeteries, or other large non-residential spaces
 parks = ntas %>% filter(str_detect(ntaname, paste0("park", collapse = "|")))
 gc()
 ```
