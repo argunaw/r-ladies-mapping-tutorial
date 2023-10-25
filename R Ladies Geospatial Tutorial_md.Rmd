@@ -45,7 +45,7 @@ There are two ways you can download data:
 ```{r}
 #### destination for all unzipped folders
 
-zip_dl = "C:/Users/AyanthiGunawardana/Documents/r-ladies-mapping-tutorial-main/Testing"
+zip_dl = "C:/Users/argun/Documents/r-ladies-mapping-tutorial-main/Testing"
 
 
 ##create a temporary folder to unzip (only do this once, not for every file)
@@ -379,7 +379,7 @@ colors <- c("#FFFFB2", "#FECC5C", "#FD8D3C", "#F03B20", "#BD0026", "#A1C690", "d
 ggplot() + 
     geom_sf(data=nta_rest, aes(fill=brks)) +
     geom_sf(data=parks,  aes(fill="Parks/Cemeteries"))+
-    geom_sf(data=nta_no_rest, aes(fill="No Restaurants"))+
+    #geom_sf(data=nta_no_rest, aes(fill="No Restaurants"))+
     geom_sf(data=airports, aes(fill="Airports"))+
     theme(panel.background = element_rect(fill = "white"),
         axis.ticks = element_blank(),
@@ -391,7 +391,7 @@ ggplot() +
     values=colors,
     breaks=c(levels(nta_rest$brks), 'Parks/Cemeteries', 'No Restaurants', 'Airports'))+
     labs(title = "Open Restaurant Permits \nPer Square Mile \nby Neighborhood Tabulation Area",
-       caption=paste0("source: NYC Open Data, Retrieved on ", Sys.Date()))
+       caption=paste0("source: NYC Open Data, Retrieved on ", "March 8, 2022"))
   
 ```
 
